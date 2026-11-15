@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from decimal import Decimal
+from datetime import datetime
 
 class CategoryCreate(BaseModel):
     """
@@ -58,11 +59,26 @@ class UserCreate(BaseModel):
     role: str = Field(default="buyer", pattern="^(buyer|seller)$", description="Роль: 'buyer' или 'seller'")
 
 class User(BaseModel):
-    id: int
-    email: EmailStr
-    is_active: bool
-    role: str
+    id: int = Field(..., description="Уникальный идентификатор пользователя")
+    email: EmailStr = Field(..., description="Email пользователя")
+    is_active: bool = Field(..., description="Активность пользователя")
+    role: str = Field(..., description="Роль пользователя")
+
     model_config = ConfigDict(from_attributes=True)
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str
+    refresh_token: str = Field(..., description="Старый refresh-токен")
+
+class ReviewCreate(BaseModel):
+    product_id: int = Field(..., description="ID товара")
+    comment: str | None = Field(None, description="Текстовое поле для отызыва")
+    grade: int = Field(..., description="Оценка товара") # Диапазон проверяется в функции
+
+class Review(BaseModel):
+    id: int = Field(..., description="Уникальный идентификатор отзыва")
+    user_id: int = Field(..., description="ID пользователя")
+    product_id: int = Field(..., description="ID товара")
+    comment: str | None = Field(None, description="Текстовое поле для отызыва")
+    commnet_date: datetime = Field(..., description="Дата и время отзыва")
+    grade: int = Field(..., description="Оценка товара")
+    is_active: bool = Field(..., description="Активность отзыва")
