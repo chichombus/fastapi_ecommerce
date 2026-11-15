@@ -1,9 +1,9 @@
-from sqlalchemy import Integer, String, Boolean, ForeignKey, Text, DateTime
+from sqlalchemy import Integer, Boolean, ForeignKey, Text, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from datetime import datetime
 
-from database import Base
+from app.database import Base
 
 class Review(Base):
     __tablename__ = "reviews"
