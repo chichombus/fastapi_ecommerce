@@ -6,11 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.reviews import Review as ReviewModel
 from app.models.products import Product as ProductModel
 
-from app.db_depends import get_async_db
 
-async def update_product_rating(product_id: int, db: AsyncSession = Depends(get_async_db)):
+async def update_product_rating(product_id: int, db: AsyncSession):
     result = await db.execute(
-        select(func.avg(ReviewModel.grade))
+        select(func.round(func.avg(ReviewModel.grade), 2))
         .where(ReviewModel.product_id == product_id,
                ReviewModel.is_active.is_(True))
     )

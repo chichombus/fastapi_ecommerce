@@ -49,6 +49,7 @@ class Product(BaseModel):
     image_url: str | None = Field(None, description="URL изображение товара")
     stock: int = Field(..., description="Количество товара на складе")
     category_id: int = Field(..., description="ID категории")
+    rating: float = Field(..., description="Рейтинг товара")
     is_active: bool = Field(..., description="Активность товара")
 
     model_config = ConfigDict(from_attributes=True)
@@ -79,6 +80,8 @@ class Review(BaseModel):
     user_id: int = Field(..., description="ID пользователя")
     product_id: int = Field(..., description="ID товара")
     comment: str | None = Field(None, description="Текстовое поле для отызыва")
-    commnet_date: datetime = Field(..., description="Дата и время отзыва")
+    comment_date: datetime = Field(..., description="Дата и время отзыва")
     grade: int = Field(..., description="Оценка товара")
     is_active: bool = Field(..., description="Активность отзыва")
+
+    model_config = ConfigDict(from_attributes=True)
