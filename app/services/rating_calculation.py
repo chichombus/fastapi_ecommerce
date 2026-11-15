@@ -9,7 +9,7 @@ from app.models.products import Product as ProductModel
 
 async def update_product_rating(product_id: int, db: AsyncSession):
     result = await db.execute(
-        select(func.round(func.avg(ReviewModel.grade), 2))
+        select(func.round(func.avg(ReviewModel.grade), 1))
         .where(ReviewModel.product_id == product_id,
                ReviewModel.is_active.is_(True))
     )
