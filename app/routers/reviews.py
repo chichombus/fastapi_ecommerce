@@ -75,7 +75,7 @@ async def create_review(
             .where(ProductModel.id == review.product_id,
                    ProductModel.is_active.is_(True))
         )
-    )
+    ).first()
     if not product:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

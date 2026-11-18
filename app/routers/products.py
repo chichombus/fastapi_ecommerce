@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, update
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import select, update, func, desc
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,7 +7,7 @@ from app.models.products import Product as ProductModel
 from app.models.categories import Category as CategoryModel
 from app.models.users import User as UserModel
 from app.auth import get_current_seller
-from app.schemas import ProductCreate, Product as ProductSchema
+from app.schemas import ProductCreate, Product as ProductSchema, ProductList
 from app.db_depends import get_db, get_async_db
 
 # Создаем маршрутизаторв для товаров
@@ -17,13 +17,34 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=list[ProductSchema])
-async def get_all_products(db: AsyncSession = Depends(get_async_db)):
+@router.get("/", response_model=ProductList)
+async def get_all_products(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_async_db)
+):
     """
     Возвращает список всех товаров
     """
-    products = (await db.scalars(select(ProductModel).where(ProductModel.is_active.is_(True)))).all()
-    return products
+    total_stmt = select(func.count()).select_from(ProductModel).where(ProductModel.is_active.is_(True))
+    total = await db.scalar(total_stmt) or 0
+
+    items = (
+        await db.scalars(
+            select(ProductModel)
+            .where(ProductModel.is_active.is_(True))
+            .order_by(ProductModel.id)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+    ).all()
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size
+    }
 
 @router.get("/category/{category_id}", response_model=list[ProductSchema])
 async def get_products_by_category(category_id: int, db: AsyncSession = Depends(get_async_db)):

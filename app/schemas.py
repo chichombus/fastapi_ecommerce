@@ -54,6 +54,15 @@ class Product(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class ProductList(BaseModel):
+    """
+    Список пагинации для товаров
+    """
+    items: list[Product] = Field(description="Товары для текущей страницы")
+    total: int = Field(ge=0, description="Общее количество товаров")
+    page: int = Field(ge=1, description="Номер текущей страницы")
+    page_size: int = Field(ge=1, description="Количество элементов на странице")
+
 class UserCreate(BaseModel):
     email: EmailStr = Field(description="Email пользователя")
     password: str = Field(min_length=8, description="Пароль (минимум 8 символов)")
@@ -73,7 +82,7 @@ class RefreshTokenRequest(BaseModel):
 class ReviewCreate(BaseModel):
     product_id: int = Field(..., description="ID товара")
     comment: str | None = Field(None, description="Текстовое поле для отызыва")
-    grade: int = Field(..., description="Оценка товара") # Диапазон проверяется в функции
+    grade: int = Field(..., description="Оценка товара") # Диапазон проверяется в POST эндпоинте
 
 class Review(BaseModel):
     id: int = Field(..., description="Уникальный идентификатор отзыва")
