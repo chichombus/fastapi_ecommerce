@@ -7,7 +7,7 @@ from app.models.products import Product as ProductModel
 from app.models.categories import Category as CategoryModel
 from app.models.users import User as UserModel
 from app.auth import get_current_seller
-from app.schemas import ProductCreate, Product as ProductSchema, ProductList
+from app.schemas import ProductCreate, Product as ProductSchema, ProductList, ProductRequest
 from app.db_depends import get_db, get_async_db
 
 # Создаем маршрутизаторв для товаров
@@ -19,20 +19,14 @@ router = APIRouter(
 
 @router.get("/", response_model=ProductList)
 async def get_all_products(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-    category_id: int | None = Query(None, description="ID категории для фильтрации"),
-    min_price: int | None = Query(None, ge=0, description="Минимальная цена товара"),
-    max_price: int | None = Query(None, ge=0, description="Максимальная цена товара"),
-    in_stock: bool | None = Query(None, description="True — только товары в наличии, False — только без остатка"),
-    seller_id: int | None = Query(None, description="ID продавца для фильтрации"),
+    request: ProductRequest = Query(),
     db: AsyncSession = Depends(get_async_db)
 ):
     """
     Возвращает список всех активных товаров с поддержкой фильтров
     """
     # Поддержка логики min_price <= max_price
-    if min_price is not None and max_price is not None and min_price > max_price:
+    if request.min_price is not None and request.max_price is not None and request.min_price > request.max_price:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="min_price cannot be greater than max_price"
@@ -41,16 +35,16 @@ async def get_all_products(
     # Формируем список фильтров
     filters = [ProductModel.is_active == True]
 
-    if category_id:
-        filters.append(ProductModel.category_id == category_id)
-    if min_price:
-        filters.append(ProductModel.price >= min_price)
-    if max_price:
-        filters.append(ProductModel.price <= max_price)
-    if in_stock is None:
-        filters.append(ProductModel.stock > 0 if in_stock else ProductModel.stock == 0)
-    if seller_id:
-        filters.append(ProductModel.seller_id == seller_id)
+    if request.category_id:
+        filters.append(ProductModel.category_id == request.category_id)
+    if request.min_price:
+        filters.append(ProductModel.price >= request.min_price)
+    if request.max_price:
+        filters.append(ProductModel.price <= request.max_price)
+    if request.in_stock is None:
+        filters.append(ProductModel.stock > 0 if request.in_stock else ProductModel.stock == 0)
+    if request.seller_id:
+        filters.append(ProductModel.seller_id == request.seller_id)
 
     # Подсчет общего количества с учетом фильтров
     total_stmt = select(func.count()).select_from(ProductModel).where(*filters)
@@ -62,16 +56,16 @@ async def get_all_products(
             select(ProductModel)
             .where(*filters)
             .order_by(ProductModel.id)
-            .offset((page - 1) * page_size)
-            .limit(page_size)
+            .offset((request.page - 1) * request.page_size)
+            .limit(request.page_size)
         )
     ).all()
 
     return {
         "items": items,
         "total": total,
-        "page": page,
-        "page_size": page_size
+        "page": request.page,
+        "page_size": request.page_size
     }
 
 @router.get("/category/{category_id}", response_model=list[ProductSchema])

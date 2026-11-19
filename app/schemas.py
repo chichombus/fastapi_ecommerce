@@ -54,6 +54,18 @@ class Product(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class ProductRequest(BaseModel):
+    """
+    Модель запроса для формирования пагинации по товарам
+    """
+    page: int = Field(ge=1, default=1, description="Номер страницы")
+    page_size: int = Field(ge=1, le=100, default=20, description="Количество товаров на одной странице")
+    category_id: int | None = Field(None, description="ID категории для фильтрации")
+    min_price: float | None = Field(None, ge=0, description="Минимальная цена товара")
+    max_price: float | None = Field(None, ge=0, description="Максимальная цена товара")
+    in_stock: bool | None = Field(None, description="True — только товары в наличии, False — только без остатка")
+    seller_id: int | None = Field(None, description="ID продавца для фильтрации")
+
 class ProductList(BaseModel):
     """
     Список пагинации для товаров
