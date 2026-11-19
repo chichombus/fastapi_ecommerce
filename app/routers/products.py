@@ -24,7 +24,7 @@ async def get_all_products(
     db: AsyncSession = Depends(get_async_db)
 ):
     """
-    Возвращает список всех активных товаров с поддержкой фильтров
+    Возвращает список всех активных товаров с поддержкой фильтров и поиска
     """
     # Поддержка логики min_price <= max_price
     if request.min_price is not None and request.max_price is not None and request.min_price > request.max_price:
@@ -36,15 +36,19 @@ async def get_all_products(
     # Формируем список фильтров
     filters = [ProductModel.is_active == True]
 
-    if request.category_id:
+    if request.category_id is not None:
         filters.append(ProductModel.category_id == request.category_id)
-    if request.min_price:
+    if request.search is not None:
+        search_value = request.search.strip()
+        if search_value:
+            filters.append(func.lower(ProductModel.name).like(f"%{search_value.lower()}%"))
+    if request.min_price is not None:
         filters.append(ProductModel.price >= request.min_price)
-    if request.max_price:
+    if request.max_price is not None:
         filters.append(ProductModel.price <= request.max_price)
-    if request.in_stock is None:
+    if request.in_stock is not None:
         filters.append(ProductModel.stock > 0 if request.in_stock else ProductModel.stock == 0)
-    if request.seller_id:
+    if request.seller_id is not None:
         filters.append(ProductModel.seller_id == request.seller_id)
 
     # Подсчет общего количества с учетом фильтров
