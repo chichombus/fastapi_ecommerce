@@ -9,6 +9,7 @@ from app.models.users import User as UserModel
 from app.auth import get_current_seller
 from app.schemas import ProductCreate, Product as ProductSchema, ProductList, ProductRequest
 from app.db_depends import get_db, get_async_db
+from app.enums import ProductSortField
 
 # Создаем маршрутизаторв для товаров
 router = APIRouter(
@@ -50,12 +51,22 @@ async def get_all_products(
     total_stmt = select(func.count()).select_from(ProductModel).where(*filters)
     total = await db.scalar(total_stmt) or 0
 
+    # Формирование запроса сортировки
+    sort_data = {
+        ProductSortField.id: ProductModel.id,
+        ProductSortField.created_at: ProductModel.created_at
+    }
+
+    order_by = sort_data[request.sort_by]
+    if not request.sort_direction:
+        order_by = order_by.desc()
+
     # Выборка товаров с фильтрами и пагинацией
     items = (
         await db.scalars(
             select(ProductModel)
             .where(*filters)
-            .order_by(ProductModel.id)
+            .order_by(order_by)
             .offset((request.page - 1) * request.page_size)
             .limit(request.page_size)
         )
@@ -173,7 +184,7 @@ async def update_product(
     await db.execute(
         update(ProductModel)
         .where(ProductModel.id == product_id)
-        .values(**payload.model_dump())
+        .values(**payload.model_dump(), updated_at=func.now())
     )
     await db.commit()
     await db.refresh(product)

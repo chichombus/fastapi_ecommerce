@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from decimal import Decimal
 from datetime import datetime
 
+from app.enums import ProductSortField
+
 class CategoryCreate(BaseModel):
     """
     Модель для создания и обновления категории.
@@ -51,6 +53,8 @@ class Product(BaseModel):
     category_id: int = Field(..., description="ID категории")
     rating: float = Field(..., description="Рейтинг товара")
     is_active: bool = Field(..., description="Активность товара")
+    created_at: datetime = Field(..., description="Дата создания товара")
+    updated_at: datetime = Field(..., description="Дата обновления товара")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -65,6 +69,8 @@ class ProductRequest(BaseModel):
     max_price: float | None = Field(None, ge=0, description="Максимальная цена товара")
     in_stock: bool | None = Field(None, description="True — только товары в наличии, False — только без остатка")
     seller_id: int | None = Field(None, description="ID продавца для фильтрации")
+    sort_by: ProductSortField = Field(default=ProductSortField.id, description="Сортировка по полю")
+    sort_direction: bool = Field(default=True, description="True - сортировка по возрастанию, False - по убыванию")
 
 class ProductList(BaseModel):
     """
