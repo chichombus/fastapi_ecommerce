@@ -38,10 +38,6 @@ async def get_all_products(
 
     if request.category_id is not None:
         filters.append(ProductModel.category_id == request.category_id)
-    if request.search is not None:
-        search_value = request.search.strip()
-        if search_value:
-            filters.append(func.lower(ProductModel.name).like(f"%{search_value.lower()}%"))
     if request.min_price is not None:
         filters.append(ProductModel.price >= request.min_price)
     if request.max_price is not None:
@@ -50,6 +46,14 @@ async def get_all_products(
         filters.append(ProductModel.stock > 0 if request.in_stock else ProductModel.stock == 0)
     if request.seller_id is not None:
         filters.append(ProductModel.seller_id == request.seller_id)
+
+    rank_col = None
+    if request.search:
+        search_value = request.search.strip()
+        if search_value:
+            ts_query = func.websearch_to_tsquery('english', search_value)
+            filters.append(ProductModel.tsv.op('@@')(ts_query))
+            rank_col = func.ts_rank_cd(ProductModel.tsv, ts_query).label("rank")
 
     # Подсчет общего количества с учетом фильтров
     total_stmt = select(func.count()).select_from(ProductModel).where(*filters)
@@ -65,16 +69,30 @@ async def get_all_products(
     if not request.sort_direction:
         order_by = order_by.desc()
 
-    # Выборка товаров с фильтрами и пагинацией
-    items = (
-        await db.scalars(
+    # Основной запрос (если есть поиск - добавим ранг в выборку и сортировку)
+    if rank_col is not None:
+        products_stmt = (
+            select(ProductModel)
+            .where(*filters)
+            .order_by(desc(rank_col), order_by)
+            .offset((request.page - 1) * request.page_size)
+            .limit(request.page_size)
+        )
+        result = await db.execute(products_stmt)
+        rows = result.all()
+        items = [row[0] for row in rows]    # сами объекты
+        # при желании можно вернуть ранг в ответе
+        # ranks = [row.rank for row in rows]
+    else:
+        products_stmt = (
             select(ProductModel)
             .where(*filters)
             .order_by(order_by)
             .offset((request.page - 1) * request.page_size)
             .limit(request.page_size)
         )
-    ).all()
+        items = (await db.scalars(products_stmt)).all()
+
 
     return {
         "items": items,
