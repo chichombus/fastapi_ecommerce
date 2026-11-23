@@ -28,36 +28,6 @@ async def get_all_reviews(db: AsyncSession = Depends(get_async_db)):
 
     return reviews
 
-@router.get("/products/{product_id}/reviews", response_model=list[ReviewSchema])
-async def get_review_by_product(product_id: int, db: AsyncSession = Depends(get_async_db)):
-    """
-    Возвращает список активных отзывов для указанного товара
-    """
-    # Проверка существования товара
-    product = (
-        await db.scalars(
-            select(ProductModel)
-            .where(ProductModel.id == product_id,
-                   ProductModel.is_active.is_(True))
-        )
-    ).first()
-    if not product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Product not found or inactive"
-        )
-
-    # Получение списка отзывов о товаре
-    reviews = (
-        await db.scalars(
-            select(ReviewModel)
-            .where(ReviewModel.product_id == product_id,
-                   ReviewModel.is_active.is_(True))
-        )
-    ).all()
-
-    return reviews
-
 @router.post("/", response_model=ReviewSchema, status_code=status.HTTP_201_CREATED)
 async def create_review(
     review: ReviewCreate,
@@ -82,11 +52,19 @@ async def create_review(
             detail="Product not found or inactive"
         )
 
-    # Проверка оценки (grade) на диапазон 1-5
-    if not 1 <= review.grade <= 5:
+    # Проверка того, что пользователь не оставлял отзыв ранее
+    # Для избежания накрутки отзывов
+    review = (
+        await db.scalars(
+            select(ReviewModel)
+            .where(ReviewModel.is_active.is_(True),
+                   ReviewModel.user_id == current_user.id)
+        )
+    ).first()
+    if review:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Grade should be on a scale of 1–5"
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You have already write a review for this product"
         )
 
     # Создание нового отзыва

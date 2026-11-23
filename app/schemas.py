@@ -99,7 +99,7 @@ class RefreshTokenRequest(BaseModel):
 class ReviewCreate(BaseModel):
     product_id: int = Field(..., description="ID товара")
     comment: str | None = Field(None, description="Текстовое поле для отызыва")
-    grade: int = Field(..., description="Оценка товара") # Диапазон проверяется в POST эндпоинте
+    grade: int = Field(..., ge=1, le=5, description="Оценка товара, диапазон 1-5")
 
 class Review(BaseModel):
     id: int = Field(..., description="Уникальный идентификатор отзыва")
