@@ -8,7 +8,7 @@ from app.schemas import ReviewCreate, Review as ReviewSchema
 from app.models.products import Product as ProductModel
 from app.models.users import User as UserModel
 from app.auth import get_current_buyer, get_current_buyer_or_admin
-from app.services.rating_calculation import update_product_rating
+from app.services._rating_calculation import _update_product_rating
 
 from app.db_depends import get_async_db
 
@@ -74,7 +74,7 @@ async def create_review(
     await db.refresh(db_review)
 
     # Расчет среднего рейтинга товара
-    await update_product_rating(review.product_id, db)
+    await _update_product_rating(review.product_id, db)
 
     # Возврат отзыва
     return db_review
@@ -120,6 +120,6 @@ async def delete_review(
     await db.refresh(review)
 
     # Расчет среднего рейтинга товара
-    update_product_rating(review.product_id, db)
+    _update_product_rating(review.product_id, db)
 
     return {"message": "Review deleted"}
